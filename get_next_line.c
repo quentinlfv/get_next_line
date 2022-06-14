@@ -6,7 +6,7 @@
 /*   By: qlefevre <marvin@42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/06/13 13:18:53 by qlefevre          #+#    #+#             */
-/*   Updated: 2022/06/13 17:15:36 by qlefevre         ###   ########.fr       */
+/*   Updated: 2022/06/14 20:27:37 by qlefevre         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,26 +28,52 @@ int	ft_strlen(char *s)
 		i++;
 	return (i);
 }
+char	*new_stash(char *stash, int i)
+{
+	char	*tmp;
+	int		j;
+
+	j = 0;
+	tmp = malloc(sizeof(char) * (BUFFER_SIZE + 255));
+	if (!tmp)
+		return (NULL);
+	while (stash[i])
+	{
+		tmp[j] = stash[i];
+		i++;
+		j++;
+	}
+	tmp[j] = 0;
+	while (i != 0)
+	{
+		stash[i] = 0;
+		i--;
+	}
+	stash[i] = 0;
+	while (tmp[i])
+	{
+		stash[i] = tmp[i];
+		i++;
+	}
+	free(tmp);
+	return (stash);
+}
 
 char	*stricpy(char *src, char *dest, int i)
 {
 	int	j;
 
 	j = 0;
-	printf("i vaut %d\n", i);
-	while (src[i])
+	while (j < i)
 	{
-		dest[j] = src[i];
-		src[i] = 0;
+		dest[j] = src[j];
 		j++;
-		i++;
 	}
 	dest[j] = 0;
-	printf("dest : %s\n", dest);
 	return (dest);
 }
 
-int	check_eol(char *s)
+int	check_eol(char *s, char *line)
 {
 	int	i;
 
@@ -57,26 +83,58 @@ int	check_eol(char *s)
 	if (ft_strlen(s) == i)
 		return (-1);
 	else
+	{
+		stricpy(s, line, i + 1);
+		new_stash(s, i + 1);
 		return (i);
+	}
+}
+
+char	*strcat(char *s1, char *s2)
+{
+	int	i;
+	int	j;
+
+	i = 0;
+	j = 0;
+	while (s1[i])
+		i++;
+	while (s2[j])
+	{
+		s1[i] = s2[j];
+		i++;
+		j++;
+	}
+	s1[i] = 0;
+	return (s1);
 }
 
 char	*get_next_line(int fd)
 {
-	static char	*stash;
+	static char	stash[BUFFER_SIZE + 255];
 	char		*buf;
 	char		*line;
 	size_t		size;
 
+	printf("stash : %s\n", stash);
 	buf = malloc (sizeof(char) * BUFFER_SIZE);
-	line = malloc(sizeof(char) * 25);
-	stash = malloc(sizeof(char) * 40);
-	while (check_eol(line) == -1 && size != 0)
+	line = malloc(sizeof(char) * 255);
+	/*if (!stash)
+		stash = malloc(sizeof(char) * (BUFFER_SIZE + 255));*/
+	if (!buf || !line || !stash)
+		return (NULL);
+	while (check_eol(stash, line) == -1 && size != 0)
 	{
 		size = read(fd, buf, BUFFER_SIZE);
-		printf("line : %s\n", line);
+		strcat(stash, buf);
+
 	}
-	if (check_eol(line) != -1)
-		stricpy(line, stash, check_eol(line));
+	if (size == 0)
+	{
+		//free(stash);
+		return (NULL);
+	}
+	free(buf);
 	return (line);
 }
 
@@ -92,10 +150,12 @@ int	main(void)
 		return (0);
 	}
 	printf("the file descp is %d\n", fd);
-	line = get_next_line(fd);
-	printf("gnl = %s\n", line);
-	line = get_next_line(fd);
-	printf("gnl = %s\n", line);
+	for (int i = 0; i < 4; i++)
+	{
+		line = get_next_line(fd);
+		printf("gnl = %s", line);
+	}
+	free(line);
 	if (close(fd) < 0)
 		printf("Error while closing doc");
 	else
